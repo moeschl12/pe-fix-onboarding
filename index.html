@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>pe-lix · Ihre Website-Daten</title>
+  <meta name="robots" content="noindex, nofollow"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.js" crossorigin="anonymous"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --bg:#0a0a0f;--surface:#111118;--surface2:#1a1a24;
+      --border:#ffffff0f;--border2:#ffffff18;
+      --gold:#C9A84C;--gold2:#e2c06a;
+      --white:#ffffff;--muted:#6b6b80;--muted2:#9898aa;
+      --green:#22c55e;--red:#ef4444;
+    }
+    html,body{min-height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--white);font-size:16px;-webkit-font-smoothing:antialiased;}
+
+    /* PROGRESS */
+    .progress-bar{position:fixed;top:0;left:0;right:0;height:3px;background:var(--surface2);z-index:100;}
+    .progress-fill{height:100%;background:var(--gold);transition:width 0.4s ease;}
+
+    /* HEADER */
+    .header{padding:1.5rem 1.5rem 0;display:flex;align-items:center;gap:0.8rem;}
+    .logo{font-size:1.3rem;font-weight:700;letter-spacing:-0.02em;}
+    .logo span{color:var(--gold);}
+    .step-label{margin-left:auto;font-size:0.8rem;color:var(--muted2);}
+
+    /* CONTAINER */
+    .container{max-width:560px;margin:0 auto;padding:2rem 1.5rem 6rem;}
+
+    /* STEP */
+    .step{display:none;animation:fadeIn 0.25s ease;}
+    .step.active{display:block;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+    .step-icon{font-size:2.2rem;margin-bottom:1rem;}
+    .step-title{font-size:1.6rem;font-weight:700;letter-spacing:-0.02em;margin-bottom:0.4rem;}
+    .step-sub{color:var(--muted2);font-size:0.9rem;line-height:1.5;margin-bottom:2rem;}
+
+    /* FORM */
+    .form-group{margin-bottom:1.2rem;}
+    .form-group label{display:block;font-size:0.85rem;font-weight:500;color:var(--muted2);margin-bottom:0.45rem;}
+    .form-group label .req{color:var(--gold);}
+    .form-group input,.form-group select,.form-group textarea{
+      width:100%;background:var(--surface);border:1px solid var(--border2);
+      border-radius:12px;padding:0.9rem 1rem;color:var(--white);
+      font-family:inherit;font-size:1rem;outline:none;transition:border-color 0.2s;
+      -webkit-appearance:none;
+    }
+    .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--gold);}
+    .form-group input::placeholder,.form-group textarea::placeholder{color:var(--muted);}
+    .form-group textarea{resize:vertical;min-height:100px;line-height:1.5;}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+    .form-hint{font-size:0.78rem;color:var(--muted);margin-top:0.35rem;}
+
+    /* COLOR PICKER */
+    .color-grid{display:flex;gap:0.8rem;flex-wrap:wrap;margin-top:0.5rem;}
+    .color-card{
+      flex:1;min-width:80px;padding:0.8rem 0.5rem;border-radius:12px;
+      border:2px solid transparent;cursor:pointer;text-align:center;
+      transition:all 0.15s;
+    }
+    .color-card.selected{border-color:var(--white);}
+    .color-preview{width:36px;height:36px;border-radius:8px;margin:0 auto 0.4rem;position:relative;}
+    .color-preview-sec{position:absolute;bottom:2px;right:2px;width:14px;height:14px;border-radius:3px;}
+    .color-card-label{font-size:0.7rem;color:var(--muted2);}
+    .color-card.selected .color-card-label{color:var(--white);}
+
+    /* LAYOUT PICKER */
+    .layout-grid{display:flex;gap:0.8rem;margin-top:0.5rem;}
+    .layout-card{
+      flex:1;padding:0.9rem 0.5rem;border:1px solid var(--border2);
+      border-radius:12px;text-align:center;cursor:pointer;transition:all 0.15s;
+    }
+    .layout-card.selected{border-color:var(--gold);background:rgba(201,168,76,0.08);}
+    .layout-card-icon{font-size:1.5rem;margin-bottom:0.3rem;}
+    .layout-card-label{font-size:0.78rem;color:var(--muted2);}
+    .layout-card.selected .layout-card-label{color:var(--gold);}
+
+    /* SECTION TOGGLES */
+    .section-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:0.5rem;}
+    .section-card{
+      padding:0.8rem;border:1px solid var(--border2);border-radius:12px;
+      cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:0.6rem;
+    }
+    .section-card.active{border-color:var(--gold);background:rgba(201,168,76,0.06);}
+    .section-card-icon{font-size:1.2rem;}
+    .section-card-label{font-size:0.85rem;font-weight:500;}
+    .section-card.active .section-card-label{color:var(--gold);}
+    .section-check{margin-left:auto;width:18px;height:18px;border-radius:50%;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:0.65rem;}
+    .section-card.active .section-check{background:var(--gold);border-color:var(--gold);color:#0a0a0f;}
+
+    /* HOURS */
+    .hours-row{display:grid;grid-template-columns:120px 1fr;align-items:center;gap:1rem;margin-bottom:0.8rem;}
+    .hours-day{font-size:0.85rem;color:var(--muted2);}
+
+    /* TAX TOGGLE */
+    .tax-options{display:flex;gap:0.8rem;margin-top:0.5rem;}
+    .tax-opt{
+      flex:1;padding:0.9rem;border:1px solid var(--border2);border-radius:12px;
+      cursor:pointer;text-align:center;transition:all 0.15s;
+    }
+    .tax-opt.selected{border-color:var(--gold);background:rgba(201,168,76,0.08);}
+    .tax-opt-title{font-weight:600;font-size:0.9rem;margin-bottom:0.2rem;}
+    .tax-opt-sub{font-size:0.75rem;color:var(--muted2);}
+    .tax-opt.selected .tax-opt-sub{color:var(--gold);}
+
+    /* DSGVO */
+    .dsgvo-box{
+      background:var(--surface);border:1px solid var(--border2);border-radius:12px;
+      padding:1rem;display:flex;gap:0.8rem;align-items:flex-start;cursor:pointer;
+      transition:border-color 0.2s;
+    }
+    .dsgvo-box.checked{border-color:var(--gold);}
+    .dsgvo-checkbox{
+      width:22px;height:22px;border-radius:6px;border:2px solid var(--border2);
+      flex-shrink:0;display:flex;align-items:center;justify-content:center;
+      font-size:0.8rem;transition:all 0.15s;margin-top:2px;
+    }
+    .dsgvo-box.checked .dsgvo-checkbox{background:var(--gold);border-color:var(--gold);color:#0a0a0f;}
+    .dsgvo-text{font-size:0.82rem;color:var(--muted2);line-height:1.5;}
+    .dsgvo-text a{color:var(--gold);text-decoration:none;}
+
+    /* SUMMARY */
+    .summary-grid{display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.5rem;}
+    .summary-row{display:flex;justify-content:space-between;align-items:baseline;padding:0.6rem 0;border-bottom:1px solid var(--border);}
+    .summary-row:last-child{border-bottom:none;}
+    .summary-key{font-size:0.82rem;color:var(--muted2);}
+    .summary-val{font-size:0.85rem;font-weight:500;text-align:right;max-width:60%;}
+
+    /* NAVIGATION */
+    .nav{
+      position:fixed;bottom:0;left:0;right:0;
+      background:var(--bg);border-top:1px solid var(--border);
+      padding:1rem 1.5rem;display:flex;gap:0.8rem;
+    }
+    .btn{
+      flex:1;padding:0.9rem;border-radius:12px;font-weight:700;
+      font-size:0.95rem;cursor:pointer;border:none;transition:all 0.2s;
+      font-family:inherit;
+    }
+    .btn-gold{background:var(--gold);color:#0a0a0f;}
+    .btn-gold:hover{background:var(--gold2);}
+    .btn-ghost{background:var(--surface);color:var(--white);border:1px solid var(--border2);flex:0 0 auto;padding:0.9rem 1.2rem;}
+    .btn-ghost:hover{border-color:var(--gold);}
+    .btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+    /* SUCCESS */
+    #successScreen{display:none;min-height:100vh;padding:3rem 1.5rem;text-align:center;max-width:480px;margin:0 auto;}
+    .success-icon{font-size:4rem;margin-bottom:1.5rem;}
+    .success-title{font-size:1.8rem;font-weight:700;margin-bottom:0.8rem;}
+    .success-sub{color:var(--muted2);line-height:1.6;margin-bottom:2rem;}
+    .next-steps{text-align:left;background:var(--surface);border-radius:16px;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;}
+    .next-step{display:flex;gap:1rem;align-items:flex-start;}
+    .next-step-num{width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,0.15);color:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0;}
+    .next-step-text{font-size:0.88rem;color:var(--muted2);line-height:1.5;}
+    .next-step-text strong{color:var(--white);}
+
+    /* ERROR */
+    .field-error{font-size:0.78rem;color:var(--red);margin-top:0.35rem;display:none;}
+    .form-group.has-error input,.form-group.has-error select,.form-group.has-error textarea{border-color:var(--red);}
+    .form-group.has-error .field-error{display:block;}
+
+    @media(max-width:480px){
+      .form-row{grid-template-columns:1fr;}
+      .color-card-label{display:none;}
+      .step-title{font-size:1.3rem;}
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:16.6%;"></div></div>
+
+<div class="header">
+  <div class="logo">pe<span>-</span>lix</div>
+  <div class="step-label" id="stepLabel">Schritt 1 von 6</div>
+</div>
+
+<div class="container" id="formContainer">
+
+  <!-- STEP 1: BETRIEB -->
+  <div class="step active" id="step1">
+    <div class="step-icon">🏢</div>
+    <div class="step-title">Ihr Betrieb</div>
+    <div class="step-sub">Grundlegende Informationen zu Ihrem Unternehmen für Ihre neue Website.</div>
+
+    <div class="form-group" id="g-companyName">
+      <label>Firmenname <span class="req">*</span></label>
+      <input type="text" id="companyName" placeholder="Mustermann GmbH" autocomplete="organization"/>
+      <div class="field-error">Bitte geben Sie Ihren Firmennamen ein.</div>
+    </div>
+    <div class="form-group" id="g-branche">
+      <label>Branche <span class="req">*</span></label>
+      <select id="branche">
+        <option value="">Branche wählen...</option>
+        <option value="maler">Maler</option>
+        <option value="elektriker">Elektriker</option>
+        <option value="sanitaer">Sanitär / Klempner</option>
+        <option value="dachdecker">Dachdecker</option>
+        <option value="schreiner">Schreiner / Tischler</option>
+        <option value="fliesenleger">Fliesenleger</option>
+        <option value="trockenbau">Trockenbau</option>
+        <option value="bauunternehmen">Bauunternehmen</option>
+      </select>
+      <div class="field-error">Bitte wählen Sie Ihre Branche.</div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" id="g-city">
+        <label>Stadt <span class="req">*</span></label>
+        <input type="text" id="city" placeholder="Leipzig" autocomplete="address-level2"/>
+        <div class="field-error">Bitte geben Sie Ihre Stadt ein.</div>
+      </div>
+      <div class="form-group" id="g-zip">
+        <label>PLZ <span class="req">*</span></label>
+        <input type="text" id="zip" placeholder="04109" maxlength="5" inputmode="numeric" autocomplete="postal-code"/>
+        <div class="field-error">5-stellige PLZ erforderlich.</div>
+      </div>
+    </div>
+    <div class="form-group" id="g-address">
+      <label>Straße &amp; Hausnummer <span class="req">*</span></label>
+      <input type="text" id="address" placeholder="Musterstraße 1" autocomplete="street-address"/>
+      <div class="field-error">Bitte geben Sie Ihre Adresse ein.</div>
+    </div>
+    <div class="form-group" id="g-email">
+      <label>E-Mail <span class="req">*</span></label>
+      <input type="email" id="email" placeholder="info@mustermann.de" autocomplete="email" inputmode="email"/>
+      <div class="field-error">Bitte geben Sie eine gültige E-Mail-Adresse ein.</div>
+    </div>
+    <div class="form-group" id="g-phone">
+      <label>Telefon <span class="req">*</span></label>
+      <input type="tel" id="phone" placeholder="+49 341 123456" autocomplete="tel" inputmode="tel"/>
+      <div class="field-error">Bitte geben Sie Ihre Telefonnummer ein.</div>
+    </div>
+  </div>
+
+  <!-- STEP 2: WEITERE KONTAKTDATEN -->
+  <div class="step" id="step2">
+    <div class="step-icon">📱</div>
+    <div class="step-title">Weitere Kontaktdaten</div>
+    <div class="step-sub">Diese Angaben sind optional, helfen aber dabei Ihre Website vollständiger zu gestalten.</div>
+
+    <div class="form-group">
+      <label>Telefon Anzeige auf der Website</label>
+      <input type="text" id="phoneDisplay" placeholder="0341 / 123456"/>
+      <div class="form-hint">Wie soll die Nummer auf der Website angezeigt werden?</div>
+    </div>
+    <div class="form-group">
+      <label>WhatsApp-Nummer</label>
+      <input type="tel" id="whatsapp" placeholder="+49 170 1234567" inputmode="tel"/>
+      <div class="form-hint">Falls Kunden Sie per WhatsApp kontaktieren können sollen.</div>
+    </div>
+    <div class="form-group">
+      <label>Website (falls vorhanden)</label>
+      <input type="url" id="website" placeholder="https://www.mustermann.de" inputmode="url"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Gründungsjahr</label>
+        <input type="text" id="foundingYear" placeholder="2005" maxlength="4" inputmode="numeric"/>
+      </div>
+      <div class="form-group">
+        <label>Servicegebiet</label>
+        <input type="text" id="serviceArea" placeholder="Leipzig und Umgebung"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: RECHTLICHES -->
+  <div class="step" id="step3">
+    <div class="step-icon">⚖️</div>
+    <div class="step-title">Impressum &amp; Rechtliches</div>
+    <div class="step-sub">Diese Angaben sind gesetzlich vorgeschrieben und erscheinen im Impressum Ihrer Website.</div>
+
+    <div class="form-group" id="g-responsiblePerson">
+      <label>Verantwortliche Person <span class="req">*</span></label>
+      <input type="text" id="responsiblePerson" placeholder="Max Mustermann" autocomplete="name"/>
+      <div class="form-hint">Vollständiger Name des Geschäftsführers / Inhabers.</div>
+      <div class="field-error">Pflichtangabe für das Impressum.</div>
+    </div>
+
+    <div class="form-group">
+      <label>Steuerliche Angaben <span class="req">*</span></label>
+      <div class="tax-options">
+        <div class="tax-opt selected" id="taxOptSmall" data-type="small_business">
+          <div class="tax-opt-title">Kleinunternehmer</div>
+          <div class="tax-opt-sub">§ 19 UStG</div>
+        </div>
+        <div class="tax-opt" id="taxOptVat" data-type="vat">
+          <div class="tax-opt-title">USt-ID vorhanden</div>
+          <div class="tax-opt-sub">DE123456789</div>
+        </div>
+      </div>
+    </div>
+    <div class="form-group" id="g-taxId" style="display:none;">
+      <label>Umsatzsteuer-ID <span class="req">*</span></label>
+      <input type="text" id="taxId" placeholder="DE123456789"/>
+      <div class="field-error">Bitte geben Sie Ihre USt-ID ein.</div>
+    </div>
+    <div class="form-group">
+      <label>Handwerkskammer-Eintrag</label>
+      <input type="text" id="handwerkskammer" placeholder="HWK Leipzig"/>
+      <div class="form-hint">Optional, aber empfohlen für das Impressum.</div>
+    </div>
+  </div>
+
+  <!-- STEP 4: ÖFFNUNGSZEITEN -->
+  <div class="step" id="step4">
+    <div class="step-icon">🕐</div>
+    <div class="step-title">Öffnungszeiten</div>
+    <div class="step-sub">Wann ist Ihr Betrieb erreichbar? Diese Zeiten erscheinen im Footer Ihrer Website.</div>
+
+    <div class="hours-row">
+      <div class="hours-day">Mo – Fr</div>
+      <div class="form-group" style="margin:0;">
+        <input type="text" id="hoursMoFr" placeholder="07:00 – 18:00 Uhr" value="07:00 – 18:00 Uhr"/>
+      </div>
+    </div>
+    <div class="hours-row">
+      <div class="hours-day">Samstag</div>
+      <div class="form-group" style="margin:0;">
+        <input type="text" id="hoursSa" placeholder="08:00 – 13:00 Uhr" value="08:00 – 13:00 Uhr"/>
+      </div>
+    </div>
+    <div class="hours-row">
+      <div class="hours-day">Sonntag</div>
+      <div class="form-group" style="margin:0;">
+        <input type="text" id="hoursSo" placeholder="Geschlossen" value="Geschlossen"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 5: DESIGN -->
+  <div class="step" id="step5">
+    <div class="step-icon">🎨</div>
+    <div class="step-title">Design</div>
+    <div class="step-sub">Wählen Sie das Erscheinungsbild Ihrer Website. Alles kann später noch angepasst werden.</div>
+
+    <div class="form-group">
+      <label>Farbschema</label>
+      <div class="color-grid" id="colorPicker">
+        <div class="color-card selected" data-color="1">
+          <div class="color-preview" style="background:#1a1a2e;"><div class="color-preview-sec" style="background:#C9A84C;"></div></div>
+          <div class="color-card-label">Dunkel &amp; Gold</div>
+        </div>
+        <div class="color-card" data-color="2">
+          <div class="color-preview" style="background:#0a1628;"><div class="color-preview-sec" style="background:#1d6fa4;"></div></div>
+          <div class="color-card-label">Dunkel &amp; Blau</div>
+        </div>
+        <div class="color-card" data-color="3">
+          <div class="color-preview" style="background:#1a1a2e;"><div class="color-preview-sec" style="background:#e63946;"></div></div>
+          <div class="color-card-label">Dunkel &amp; Rot</div>
+        </div>
+        <div class="color-card" data-color="4">
+          <div class="color-preview" style="background:#f8f9fa;border:1px solid #ddd;"><div class="color-preview-sec" style="background:#2d6a4f;"></div></div>
+          <div class="color-card-label">Hell &amp; Grün</div>
+        </div>
+        <div class="color-card" data-color="5">
+          <div class="color-preview" style="background:#0a1628;"><div class="color-preview-sec" style="background:#f59e0b;"></div></div>
+          <div class="color-card-label">Dunkel &amp; Amber</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Hero-Layout</label>
+      <div class="layout-grid" id="layoutPicker">
+        <div class="layout-card selected" data-layout="fullscreen">
+          <div class="layout-card-icon">⬛</div>
+          <div class="layout-card-label">Fullscreen</div>
+        </div>
+        <div class="layout-card" data-layout="split">
+          <div class="layout-card-icon">◧</div>
+          <div class="layout-card-label">Split</div>
+        </div>
+        <div class="layout-card" data-layout="minimal">
+          <div class="layout-card-icon">▭</div>
+          <div class="layout-card-label">Minimal</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Sections aktivieren</label>
+      <div class="section-grid" id="sectionPicker">
+        <div class="section-card active" data-section="reviews">
+          <div class="section-card-icon">⭐</div>
+          <div class="section-card-label">Bewertungen</div>
+          <div class="section-check">✓</div>
+        </div>
+        <div class="section-card active" data-section="stats">
+          <div class="section-card-icon">📊</div>
+          <div class="section-card-label">Statistiken</div>
+          <div class="section-check">✓</div>
+        </div>
+        <div class="section-card" data-section="projects">
+          <div class="section-card-icon">🖼</div>
+          <div class="section-card-label">Projekte</div>
+          <div class="section-check"></div>
+        </div>
+        <div class="section-card" data-section="faq">
+          <div class="section-card-icon">❓</div>
+          <div class="section-card-label">FAQ</div>
+          <div class="section-check"></div>
+        </div>
+        <div class="section-card" data-section="recruiting">
+          <div class="section-card-icon">👷</div>
+          <div class="section-card-label">Recruiting</div>
+          <div class="section-check"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 6: BESTÄTIGUNG -->
+  <div class="step" id="step6">
+    <div class="step-icon">✅</div>
+    <div class="step-title">Fast fertig!</div>
+    <div class="step-sub">Bitte überprüfen Sie Ihre Angaben und stimmen Sie der Datenverarbeitung zu.</div>
+
+    <div class="summary-grid" id="summaryGrid"></div>
+
+    <div class="dsgvo-box" id="dsgvoBox">
+      <div class="dsgvo-checkbox" id="dsgvoCheck"></div>
+      <div class="dsgvo-text">
+        Ich stimme zu, dass meine eingegebenen Daten zur Erstellung meiner Website von pe-lix verwendet werden.
+        Die Daten werden nicht an Dritte weitergegeben.
+        Weitere Informationen unter <a href="https://pe-lix.de/#datenschutz" target="_blank" rel="noopener noreferrer">Datenschutz</a>.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- SUCCESS -->
+<div id="successScreen">
+  <div class="success-icon">🎉</div>
+  <div class="success-title">Vielen Dank!</div>
+  <div class="success-sub">Ihre Daten sind bei uns eingegangen. Wir erstellen Ihre persönliche Demo-Website und melden uns innerhalb von 24 Stunden bei Ihnen.</div>
+  <div class="next-steps">
+    <div class="next-step">
+      <div class="next-step-num">1</div>
+      <div class="next-step-text"><strong>Demo erstellen</strong><br/>Wir bauen Ihre Website basierend auf Ihren Angaben.</div>
+    </div>
+    <div class="next-step">
+      <div class="next-step-num">2</div>
+      <div class="next-step-text"><strong>Demo-Link erhalten</strong><br/>Sie bekommen einen Link per WhatsApp oder E-Mail.</div>
+    </div>
+    <div class="next-step">
+      <div class="next-step-num">3</div>
+      <div class="next-step-text"><strong>Freischalten</strong><br/>Nach Ihrer Freigabe ist die Website innerhalb von 24h live.</div>
+    </div>
+  </div>
+</div>
+
+<!-- NAVIGATION -->
+<div class="nav" id="navBar">
+  <button class="btn btn-ghost" id="btnBack" style="display:none;">←</button>
+  <button class="btn btn-gold" id="btnNext">Weiter →</button>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://naisiaiznxiqililobis.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5haXNpYWl6bnhpcWlsaWxvYmlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MDIwNzcsImV4cCI6MjA4ODk3ODA3N30.UnVOCRn9NEScXOR-PyMq5jLwiP4E57X_SJiZkx6b1dg';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const TOTAL_STEPS = 6;
+let currentStep = 1;
+let dsgvoAccepted = false;
+let taxIdType = 'small_business';
+
+// ── NAVIGATION ──
+function updateUI() {
+  document.querySelectorAll('.step').forEach((s, i) => s.classList.toggle('active', i + 1 === currentStep));
+  document.getElementById('stepLabel').textContent = `Schritt ${currentStep} von ${TOTAL_STEPS}`;
+  document.getElementById('progressFill').style.width = `${(currentStep / TOTAL_STEPS) * 100}%`;
+  document.getElementById('btnBack').style.display = currentStep > 1 ? 'block' : 'none';
+  document.getElementById('btnNext').textContent = currentStep === TOTAL_STEPS ? 'Absenden ✓' : 'Weiter →';
+  if (currentStep === TOTAL_STEPS) buildSummary();
+  window.scrollTo(0, 0);
+}
+
+document.getElementById('btnNext').addEventListener('click', async () => {
+  if (!validateStep(currentStep)) return;
+  if (currentStep === TOTAL_STEPS) {
+    await submitForm();
+  } else {
+    currentStep++;
+    updateUI();
+  }
+});
+
+document.getElementById('btnBack').addEventListener('click', () => {
+  currentStep--;
+  updateUI();
+});
+
+// ── VALIDATION ──
+function setError(groupId, hasError) {
+  const g = document.getElementById('g-' + groupId);
+  if (g) g.classList.toggle('has-error', hasError);
+  return hasError;
+}
+
+function validateStep(step) {
+  let ok = true;
+  if (step === 1) {
+    if (!document.getElementById('companyName').value.trim()) ok = setError('companyName', true) && false; else setError('companyName', false);
+    if (!document.getElementById('branche').value) ok = setError('branche', true) && false; else setError('branche', false);
+    if (!document.getElementById('city').value.trim()) ok = setError('city', true) && false; else setError('city', false);
+    if (!/^\d{5}$/.test(document.getElementById('zip').value.trim())) ok = setError('zip', true) && false; else setError('zip', false);
+    if (!document.getElementById('address').value.trim()) ok = setError('address', true) && false; else setError('address', false);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(document.getElementById('email').value.trim())) ok = setError('email', true) && false; else setError('email', false);
+    if (!document.getElementById('phone').value.trim()) ok = setError('phone', true) && false; else setError('phone', false);
+  }
+  if (step === 3) {
+    if (!document.getElementById('responsiblePerson').value.trim()) ok = setError('responsiblePerson', true) && false; else setError('responsiblePerson', false);
+    if (taxIdType === 'vat' && !document.getElementById('taxId').value.trim()) ok = setError('taxId', true) && false; else setError('taxId', false);
+  }
+  if (step === 6 && !dsgvoAccepted) {
+    document.getElementById('dsgvoBox').style.borderColor = 'var(--red)';
+    setTimeout(() => document.getElementById('dsgvoBox').style.borderColor = '', 2000);
+    return false;
+  }
+  return ok;
+}
+
+// ── TAX TOGGLE ──
+document.getElementById('taxOptSmall').addEventListener('click', () => {
+  taxIdType = 'small_business';
+  document.getElementById('taxOptSmall').classList.add('selected');
+  document.getElementById('taxOptVat').classList.remove('selected');
+  document.getElementById('g-taxId').style.display = 'none';
+});
+document.getElementById('taxOptVat').addEventListener('click', () => {
+  taxIdType = 'vat';
+  document.getElementById('taxOptVat').classList.add('selected');
+  document.getElementById('taxOptSmall').classList.remove('selected');
+  document.getElementById('g-taxId').style.display = 'block';
+});
+
+// ── COLOR / LAYOUT / SECTIONS ──
+document.querySelectorAll('#colorPicker .color-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('#colorPicker .color-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+  });
+});
+document.querySelectorAll('#layoutPicker .layout-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('#layoutPicker .layout-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+  });
+});
+document.querySelectorAll('#sectionPicker .section-card').forEach(card => {
+  card.addEventListener('click', () => {
+    card.classList.toggle('active');
+    card.querySelector('.section-check').textContent = card.classList.contains('active') ? '✓' : '';
+  });
+});
+
+// ── DSGVO ──
+document.getElementById('dsgvoBox').addEventListener('click', () => {
+  dsgvoAccepted = !dsgvoAccepted;
+  document.getElementById('dsgvoBox').classList.toggle('checked', dsgvoAccepted);
+  document.getElementById('dsgvoCheck').textContent = dsgvoAccepted ? '✓' : '';
+  if (dsgvoAccepted) document.getElementById('dsgvoBox').style.borderColor = '';
+});
+
+// ── SUMMARY ──
+function buildSummary() {
+  const rows = [
+    ['Firma', document.getElementById('companyName').value],
+    ['Branche', document.getElementById('branche').options[document.getElementById('branche').selectedIndex]?.text || ''],
+    ['Stadt', document.getElementById('city').value],
+    ['PLZ', document.getElementById('zip').value],
+    ['Adresse', document.getElementById('address').value],
+    ['E-Mail', document.getElementById('email').value],
+    ['Telefon', document.getElementById('phone').value],
+    ['Verantwortlich', document.getElementById('responsiblePerson').value],
+    ['Steuer', taxIdType === 'small_business' ? 'Kleinunternehmer (§19 UStG)' : document.getElementById('taxId').value],
+    ['Mo – Fr', document.getElementById('hoursMoFr').value],
+    ['Samstag', document.getElementById('hoursSa').value],
+  ];
+  document.getElementById('summaryGrid').innerHTML = rows
+    .filter(([, v]) => v)
+    .map(([k, v]) => `<div class="summary-row"><span class="summary-key">${k}</span><span class="summary-val">${v}</span></div>`)
+    .join('');
+}
+
+// ── CONFIG GENERATOR ──
+const COLORS = {
+  '1': { primary: '#1a1a2e', secondary: '#C9A84C' },
+  '2': { primary: '#0a1628', secondary: '#1d6fa4' },
+  '3': { primary: '#1a1a2e', secondary: '#e63946' },
+  '4': { primary: '#f8f9fa', secondary: '#2d6a4f' },
+  '5': { primary: '#0a1628', secondary: '#f59e0b' },
+};
+const TEMPLATES = {
+  maler:        { industry:'Malerbetrieb',      icon:'Paintbrush', schema:'HomeAndConstructionBusiness', image:'https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=800&q=85', services:[{id:'s1',name:'Innenrenovierung',shortDesc:'Wände, Decken, Tapeten.',icon:'Paintbrush'},{id:'s2',name:'Fassadenarbeiten',shortDesc:'Außenanstrich und Sanierung.',icon:'Building2'},{id:'s3',name:'Tapezierarbeiten',shortDesc:'Alle Tapeten fachgerecht verlegt.',icon:'Layers'},{id:'s4',name:'Lackierarbeiten',shortDesc:'Türen und Fenster lackiert.',icon:'Wrench'},{id:'s5',name:'Wärmedämmung',shortDesc:'WDVS und Fassadendämmung.',icon:'Thermometer'},{id:'s6',name:'Dekorputz',shortDesc:'Kreative Wandgestaltung.',icon:'Award'}], reviews:[{name:'Thomas M.',rating:5,text:'Tolle Arbeit, sehr sauber und pünktlich!',date:'2024-12'},{name:'Maria S.',rating:5,text:'Unsere Wohnung sieht aus wie neu.',date:'2024-11'}], faq:[{question:'Wie lange dauert eine Zimmerrenovierung?',answer:'Ein Zimmer dauert in der Regel 1-2 Tage.'},{question:'Geben Sie eine Garantie?',answer:'Ja, 2 Jahre Garantie auf alle Malerarbeiten.'}] },
+  elektriker:   { industry:'Elektrobetrieb',    icon:'Zap',        schema:'Electrician',                 image:'https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=800&q=85', services:[{id:'s1',name:'Elektroinstallation',shortDesc:'Neuinstallation und Erweiterung.',icon:'Zap'},{id:'s2',name:'Reparaturen',shortDesc:'Schnelle Behebung von Störungen.',icon:'Wrench'},{id:'s3',name:'Smart Home',shortDesc:'Intelligente Haussteuerung.',icon:'Home'},{id:'s4',name:'Sicherheitstechnik',shortDesc:'Alarm- und Sicherheitsanlagen.',icon:'Shield'},{id:'s5',name:'Photovoltaik',shortDesc:'Solar- und Photovoltaikanlagen.',icon:'Thermometer'},{id:'s6',name:'Notdienst',shortDesc:'24/7 Notdienst.',icon:'Clock'}], reviews:[{name:'Klaus R.',rating:5,text:'Sehr professionell und pünktlich!',date:'2024-12'},{name:'Sarah M.',rating:5,text:'Schnelle Hilfe beim Notfall.',date:'2024-11'}], faq:[{question:'Bieten Sie einen Notdienst an?',answer:'Ja, 24/7 erreichbar.'},{question:'Wie schnell können Sie kommen?',answer:'In der Regel innerhalb von 2-4 Stunden.'}] },
+  sanitaer:     { industry:'Sanitärbetrieb',    icon:'Wrench',     schema:'Plumber',                     image:'https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=800&q=85', services:[{id:'s1',name:'Rohrleitungen',shortDesc:'Installation und Reparatur.',icon:'Wrench'},{id:'s2',name:'Badezimmer',shortDesc:'Badplanung und Badsanierung.',icon:'Home'},{id:'s3',name:'Heizung',shortDesc:'Heizungsinstallation und Wartung.',icon:'Thermometer'},{id:'s4',name:'Notdienst',shortDesc:'24/7 bei Rohrbruch.',icon:'Clock'},{id:'s5',name:'Wartung',shortDesc:'Regelmäßige Wartung.',icon:'Shield'},{id:'s6',name:'Dichtheitsprüfung',shortDesc:'Professionelle Prüfung.',icon:'ShieldCheck'}], reviews:[{name:'Andreas K.',rating:5,text:'Schnelle Hilfe beim Rohrbruch!',date:'2024-12'},{name:'Julia W.',rating:5,text:'Traumhaftes Bad, pünktlich.',date:'2024-11'}], faq:[{question:'Was tun bei Rohrbruch?',answer:'Haupthahn abdrehen und sofort anrufen.'},{question:'Wie lange dauert eine Badsanierung?',answer:'In der Regel 5-10 Werktage.'}] },
+  dachdecker:   { industry:'Dachdeckerbetrieb', icon:'Home',       schema:'RoofingContractor',            image:'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=85', services:[{id:'s1',name:'Dacheindeckung',shortDesc:'Neueindeckung aller Art.',icon:'Home'},{id:'s2',name:'Dachreparatur',shortDesc:'Schnelle Schadenbehebung.',icon:'Wrench'},{id:'s3',name:'Dachfenster',shortDesc:'Einbau und Austausch.',icon:'Layers'},{id:'s4',name:'Dämmung',shortDesc:'Dachdämmung.',icon:'Thermometer'},{id:'s5',name:'Flachdach',shortDesc:'Flachdacharbeiten.',icon:'Shield'},{id:'s6',name:'Blitzschutz',shortDesc:'Blitzschutzsysteme.',icon:'Zap'}], reviews:[{name:'Hans M.',rating:5,text:'Tolles Ergebnis, sehr sauber!',date:'2024-12'},{name:'Petra S.',rating:5,text:'Pünktlich und professionell.',date:'2024-11'}], faq:[{question:'Wie lange hält eine Dacheindeckung?',answer:'Je nach Material 30-50 Jahre.'},{question:'Wann Dach prüfen?',answer:'Alle 5 Jahre empfehlen wir eine Inspektion.'}] },
+  schreiner:    { industry:'Schreinerei',        icon:'Layers',    schema:'HomeAndConstructionBusiness',  image:'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=85', services:[{id:'s1',name:'Möbel nach Maß',shortDesc:'Individuelle Möbel.',icon:'Layers'},{id:'s2',name:'Küchen',shortDesc:'Küchenplanung und -montage.',icon:'Home'},{id:'s3',name:'Türen & Fenster',shortDesc:'Einbau und Reparatur.',icon:'Shield'},{id:'s4',name:'Innenausbau',shortDesc:'Kompletter Innenausbau.',icon:'Wrench'},{id:'s5',name:'Restaurierung',shortDesc:'Restaurierung alter Möbel.',icon:'Award'},{id:'s6',name:'Reparaturen',shortDesc:'Schnelle Holzreparaturen.',icon:'Clock'}], reviews:[{name:'Monika K.',rating:5,text:'Traumhafte Küche!',date:'2024-12'},{name:'Bernd L.',rating:5,text:'Einbauschrank genau nach Wunsch.',date:'2024-11'}], faq:[{question:'Küche nach Maß Dauer?',answer:'Ca. 4-6 Wochen von Planung bis Fertigstellung.'},{question:'Welche Hölzer?',answer:'Zertifizierte heimische Hölzer.'}] },
+  fliesenleger: { industry:'Fliesenlegerbetrieb',icon:'Grid3X3',   schema:'HomeAndConstructionBusiness',  image:'https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=800&q=85', services:[{id:'s1',name:'Badezimmer',shortDesc:'Badfliesen fachgerecht.',icon:'Home'},{id:'s2',name:'Küche',shortDesc:'Küchenfliesen und Spritzschutz.',icon:'Grid3X3'},{id:'s3',name:'Terrasse',shortDesc:'Terrassenfliesen und Naturstein.',icon:'Layers'},{id:'s4',name:'Naturstein',shortDesc:'Natursteinverlegung.',icon:'Shield'},{id:'s5',name:'Reparaturen',shortDesc:'Fliesen und Fugen.',icon:'Wrench'},{id:'s6',name:'Verfugung',shortDesc:'Professionelle Verfugung.',icon:'Award'}], reviews:[{name:'Sandra H.',rating:5,text:'Perfekte Verlegung!',date:'2024-12'},{name:'Robert G.',rating:5,text:'Terrasse traumhaft.',date:'2024-11'}], faq:[{question:'Badezimmer Dauer?',answer:'In der Regel 3-5 Tage.'},{question:'Welche Fliesen?',answer:'Wir beraten Sie gerne.'}] },
+  trockenbau:   { industry:'Trockenbau',         icon:'Layers',    schema:'HomeAndConstructionBusiness',  image:'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=85', services:[{id:'s1',name:'Trennwände',shortDesc:'Präzise Trennwände.',icon:'Layers'},{id:'s2',name:'Deckenabhängungen',shortDesc:'Abgehängte Decken.',icon:'Home'},{id:'s3',name:'Brandschutz',shortDesc:'Brandschutzwände nach Norm.',icon:'Shield'},{id:'s4',name:'Schallschutz',shortDesc:'Schallschutzlösungen.',icon:'Volume2'},{id:'s5',name:'Wärmedämmung',shortDesc:'Wärmedämmung.',icon:'Thermometer'},{id:'s6',name:'Renovierung',shortDesc:'Modernisierung.',icon:'Wrench'}], reviews:[{name:'Michael B.',rating:5,text:'Sehr präzise Arbeit!',date:'2024-12'},{name:'Julia K.',rating:5,text:'Pünktlich und professionell.',date:'2024-11'}], faq:[{question:'Trennwand Dauer?',answer:'Eine einfache Trennwand in 1-2 Tagen.'},{question:'Materialien?',answer:'Knauf und Rigips.'}] },
+  bauunternehmen:{ industry:'Bauunternehmen',    icon:'Building2', schema:'GeneralContractor',            image:'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&q=85', services:[{id:'s1',name:'Neubau',shortDesc:'Schlüsselfertiger Neubau.',icon:'Building2'},{id:'s2',name:'Umbau',shortDesc:'Umbau und Erweiterung.',icon:'Wrench'},{id:'s3',name:'Sanierung',shortDesc:'Komplettsanierung.',icon:'Home'},{id:'s4',name:'Rohbau',shortDesc:'Rohbauarbeiten.',icon:'Layers'},{id:'s5',name:'Außenanlagen',shortDesc:'Außenanlagen.',icon:'MapPin'},{id:'s6',name:'Beratung',shortDesc:'Kompetente Bauberatung.',icon:'Award'}], reviews:[{name:'Familie Wagner',rating:5,text:'Traumhaus pünktlich!',date:'2024-12'},{name:'GmbH Müller',rating:5,text:'Professionelle Abwicklung.',date:'2024-11'}], faq:[{question:'Hausbau Dauer?',answer:'8-12 Monate für ein schlüsselfertiges Haus.'},{question:'Bauleitung?',answer:'Ja, wir übernehmen die komplette Bauleitung.'}] },
+};
+
+function slugify(str) {
+  return str.toLowerCase()
+    .replace(/[äöü]/g, c => ({ ä: 'ae', ö: 'oe', ü: 'ue' }[c] || c))
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function getSections() {
+  const s = {};
+  document.querySelectorAll('#sectionPicker .section-card').forEach(c => { s[c.dataset.section] = c.classList.contains('active'); });
+  return s;
+}
+
+function buildSiteConfig(d) {
+  const t = TEMPLATES[d.branche] || TEMPLATES.maler;
+  const c = COLORS[d.colorScheme] || COLORS['1'];
+  const isLight = c.primary === '#f8f9fa';
+  const slug = slugify(`${d.companyName}-${d.city}`);
+  const desc = `Professionelle ${t.industry} in ${d.city} und Umgebung.`;
+  const yearsExp = d.foundingYear ? `${new Date().getFullYear() - parseInt(d.foundingYear)}+` : '10+';
+  const s = d.sections;
+  return { slug, config: `export const siteConfig = {
+  companyName: "${d.companyName}",
+  tagline: "Ihr ${t.industry} in ${d.city}",
+  industry: "${t.industry}",
+  description: "${desc}",
+  foundingYear: "${d.foundingYear || ''}",
+  phone: "${d.phone}",
+  phoneDisplay: "${d.phoneDisplay || d.phone}",
+  whatsapp: "${d.whatsapp || ''}",
+  email: "${d.email}",
+  website: "${d.website || ''}",
+  address: "${d.address}",
+  city: "${d.city}",
+  zip: "${d.zip}",
+  region: "${d.city}",
+  serviceArea: "${d.serviceArea || d.city + ' und Umgebung'}",
+  legal: {
+    taxId: "${d.taxId || ''}",
+    taxIdType: "${d.taxIdType}" as "vat" | "small_business",
+    handwerkskammer: "${d.handwerkskammer || ''}",
+    tradeRegister: "",
+    tradeRegisterNumber: "",
+    responsiblePerson: "${d.responsiblePerson}",
+  },
+  activeServices: {
+    googleFonts: false,
+    googleAnalytics: "",
+    vercelAnalytics: true,
+    resend: true,
+    whatsapp: ${!!d.whatsapp},
+    sanity: true,
+    googleMaps: false,
+    youtube: false,
+  },
+  colors: {
+    primary: "${c.primary}",
+    secondary: "${c.secondary}",
+    accent: "${c.primary}",
+    primaryText: "${isLight ? '#1a1a1a' : '#ffffff'}",
+    secondaryText: "#8a8a9a",
+    background: "${isLight ? '#f0f0f0' : '#12121f'}",
+  },
+  fonts: { display: "DM Sans", body: "DM Sans" },
+  darkMode: ${!isLight},
+  logo: { type: "text" as "text" | "image", text: "${d.companyName.charAt(0)}", imageUrl: "", icon: "${t.icon}" },
+  layout: { navStyle: "transparent" as "transparent" | "solid", footerStyle: "full" as "full" | "simple" },
+  sections: {
+    hero: { active: true, layout: "${d.heroLayout}" as "fullscreen" | "split" | "minimal", showBadge: true, showTrustBar: true },
+    services: { active: true, layout: "grid" as "grid" | "list" | "cards", columns: 3 as 2 | 3 | 4 },
+    about: { active: true, layout: "split" as "split" | "centered", showStats: true },
+    projects: { active: ${s.projects || false}, layout: "masonry" as "masonry" | "grid" | "slider" },
+    reviews: { active: ${s.reviews !== false}, layout: "grid" as "grid" | "slider" },
+    stats: { active: ${s.stats !== false} },
+    benefits: { active: false, layout: "grid" as "grid" | "list" },
+    faq: { active: ${s.faq || false} },
+    recruiting: { active: ${s.recruiting || false} },
+    contact: { active: true, layout: "split" as "split" | "centered", showWhatsApp: ${!!d.whatsapp} },
+  },
+  services: ${JSON.stringify(t.services.map(sv => ({ ...sv, description: sv.shortDesc, image: '' })), null, 2)},
+  about: {
+    title: "Über ${d.companyName}",
+    description: "${desc}",
+    image: "${t.image}",
+    highlights: [
+      { label: "Jahre Erfahrung", value: "${yearsExp}" },
+      { label: "Projekte", value: "200+" },
+      { label: "Zufriedene Kunden", value: "99%" },
+    ],
+  },
+  projects: [
+    { id: "p1", title: "Projekt in ${d.city}", description: "Professionelle Ausführung.", image: "${t.image}", category: "${t.industry}" },
+    { id: "p2", title: "Weiteres Projekt", description: "Qualitätsarbeit.", image: "${t.image}", category: "${t.industry}" },
+  ],
+  stats: [
+    { value: "200+", label: "Projekte" },
+    { value: "${yearsExp}", label: "Jahre" },
+    { value: "99%", label: "Zufriedenheit" },
+  ],
+  benefits: [
+    { title: "Erfahrung", description: "Jahrelange Expertise.", icon: "Award" },
+    { title: "Qualität", description: "Beste Materialien.", icon: "ShieldCheck" },
+    { title: "Pünktlich", description: "Termintreue garantiert.", icon: "Clock" },
+    { title: "Lokal", description: "Ihr Partner in ${d.city}.", icon: "MapPin" },
+  ],
+  reviews: ${JSON.stringify(t.reviews, null, 2)},
+  faqItems: ${JSON.stringify(t.faq, null, 2)},
+  openingHours: [
+    { day: "Montag – Freitag", hours: "${d.hoursMoFr}" },
+    { day: "Samstag", hours: "${d.hoursSa}" },
+    { day: "Sonntag", hours: "${d.hoursSo}" },
+  ],
+  seo: {
+    titleTemplate: "%s | ${d.companyName}",
+    defaultTitle: "${d.companyName} – ${t.industry} in ${d.city}",
+    defaultDescription: "${desc}",
+    keywords: "${t.industry} ${d.city}",
+    ogImage: "/og-image.jpg",
+    siteUrl: "https://${slug}.vercel.app",
+  },
+  schema: { type: "${t.schema}", priceRange: "€€", areaServed: "${d.city}" },
+  socialMedia: { facebook: "", instagram: "", linkedin: "" },
+  analytics: { googleAnalyticsId: "" },
+  sanity: { projectId: "8dczusjp", dataset: "production" },
+  language: { default: "de" as "de" | "en", available: ["de"] as ("de" | "en")[] },
+};
+
+export type SiteConfig = typeof siteConfig;
+export default siteConfig;
+` };
+}
+
+// ── SUBMIT ──
+async function submitForm() {
+  const btn = document.getElementById('btnNext');
+  btn.textContent = 'Wird gesendet...';
+  btn.disabled = true;
+
+  const colorScheme = document.querySelector('#colorPicker .color-card.selected')?.dataset.color || '1';
+  const heroLayout = document.querySelector('#layoutPicker .layout-card.selected')?.dataset.layout || 'fullscreen';
+  const sections = getSections();
+
+  const d = {
+    companyName: document.getElementById('companyName').value.trim(),
+    branche: document.getElementById('branche').value,
+    city: document.getElementById('city').value.trim(),
+    zip: document.getElementById('zip').value.trim(),
+    address: document.getElementById('address').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    phone: document.getElementById('phone').value.trim(),
+    phoneDisplay: document.getElementById('phoneDisplay').value.trim(),
+    whatsapp: document.getElementById('whatsapp').value.trim(),
+    website: document.getElementById('website').value.trim(),
+    foundingYear: document.getElementById('foundingYear').value.trim(),
+    serviceArea: document.getElementById('serviceArea').value.trim(),
+    responsiblePerson: document.getElementById('responsiblePerson').value.trim(),
+    taxIdType,
+    taxId: document.getElementById('taxId').value.trim(),
+    handwerkskammer: document.getElementById('handwerkskammer').value.trim(),
+    hoursMoFr: document.getElementById('hoursMoFr').value.trim(),
+    hoursSa: document.getElementById('hoursSa').value.trim(),
+    hoursSo: document.getElementById('hoursSo').value.trim(),
+    colorScheme, heroLayout, sections,
+  };
+
+  const { slug, config } = buildSiteConfig(d);
+
+  const { error } = await db.from('onboarding').insert({
+    company_name: d.companyName,
+    branche: d.branche,
+    city: d.city,
+    address: d.address,
+    zip: d.zip,
+    phone: d.phone,
+    phone_display: d.phoneDisplay,
+    whatsapp: d.whatsapp,
+    email: d.email,
+    website: d.website,
+    founding_year: d.foundingYear,
+    responsible_person: d.responsiblePerson,
+    tax_id_type: d.taxIdType,
+    tax_id: d.taxId,
+    handwerkskammer: d.handwerkskammer,
+    hours_mo_fr: d.hoursMoFr,
+    hours_sa: d.hoursSa,
+    hours_so: d.hoursSo,
+    service_area: d.serviceArea,
+    color_scheme: d.colorScheme,
+    hero_layout: d.heroLayout,
+    sections: d.sections,
+    site_config_ts: config,
+    slug,
+    status: 'neu',
+  });
+
+  if (error) {
+    btn.textContent = 'Absenden ✓';
+    btn.disabled = false;
+    alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
+    return;
+  }
+
+  document.getElementById('formContainer').style.display = 'none';
+  document.getElementById('navBar').style.display = 'none';
+  document.querySelector('.progress-bar').style.display = 'none';
+  document.getElementById('successScreen').style.display = 'block';
+  document.querySelector('.header').style.display = 'none';
+}
+
+updateUI();
+</script>
+</body>
+</html>
