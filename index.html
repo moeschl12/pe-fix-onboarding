@@ -659,7 +659,6 @@ function buildSiteConfig(d) {
     vercelAnalytics: true,
     resend: true,
     whatsapp: ${!!d.whatsapp},
-    sanity: true,
     googleMaps: false,
     youtube: false,
   },
@@ -731,7 +730,6 @@ function buildSiteConfig(d) {
   schema: { type: "${t.schema}", priceRange: "€€", areaServed: "${d.city}" },
   socialMedia: { facebook: "", instagram: "", linkedin: "" },
   analytics: { googleAnalyticsId: "" },
-  sanity: { projectId: "8dczusjp", dataset: "production" },
   language: { default: "de" as "de" | "en", available: ["de"] as ("de" | "en")[] },
 };
 
