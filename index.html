@@ -630,37 +630,44 @@ function getSections() {
   return s;
 }
 
+// Escaping für TypeScript-String-Literale: verhindert Injection via User-Input
+function escapeTs(val) {
+  if (val == null) return '';
+  return String(val).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r?\n/g, '\\n');
+}
+
 function buildSiteConfig(d) {
   const t = TEMPLATES[d.branche] || TEMPLATES.maler;
   const c = COLORS[d.colorScheme] || COLORS['1'];
   const isLight = c.primary === '#f8f9fa';
   const slug = slugify(`${d.companyName}-${d.city}`);
-  const desc = `Professionelle ${t.industry} in ${d.city} und Umgebung.`;
-  const yearsExp = d.foundingYear ? `${new Date().getFullYear() - parseInt(d.foundingYear)}+` : '10+';
+  const desc = `Professionelle ${t.industry} in ${escapeTs(d.city)} und Umgebung.`;
+  const yearNum = parseInt(d.foundingYear);
+  const yearsExp = (d.foundingYear && !isNaN(yearNum) && yearNum > 1800) ? `${new Date().getFullYear() - yearNum}+` : '10+';
   const s = d.sections;
   return { slug, config: `export const siteConfig = {
-  companyName: "${d.companyName}",
-  tagline: "Ihr ${t.industry} in ${d.city}",
+  companyName: "${escapeTs(d.companyName)}",
+  tagline: "Ihr ${t.industry} in ${escapeTs(d.city)}",
   industry: "${t.industry}",
-  description: "${desc}",
-  foundingYear: "${d.foundingYear || ''}",
-  phone: "${d.phone}",
-  phoneDisplay: "${d.phoneDisplay || d.phone}",
-  whatsapp: "${d.whatsapp || ''}",
-  email: "${d.email}",
-  website: "${d.website || ''}",
-  address: "${d.address}",
-  city: "${d.city}",
-  zip: "${d.zip}",
-  region: "${d.city}",
-  serviceArea: "${d.serviceArea || d.city + ' und Umgebung'}",
+  description: "${escapeTs(desc)}",
+  foundingYear: "${escapeTs(d.foundingYear)}",
+  phone: "${escapeTs(d.phone)}",
+  phoneDisplay: "${escapeTs(d.phoneDisplay || d.phone)}",
+  whatsapp: "${escapeTs(d.whatsapp)}",
+  email: "${escapeTs(d.email)}",
+  website: "${escapeTs(d.website)}",
+  address: "${escapeTs(d.address)}",
+  city: "${escapeTs(d.city)}",
+  zip: "${escapeTs(d.zip)}",
+  region: "${escapeTs(d.city)}",
+  serviceArea: "${escapeTs(d.serviceArea || d.city + ' und Umgebung')}",
   legal: {
-    taxId: "${d.taxId || ''}",
-    taxIdType: "${d.taxIdType}" as "vat" | "small_business",
-    handwerkskammer: "${d.handwerkskammer || ''}",
+    taxId: "${escapeTs(d.taxId)}",
+    taxIdType: "${escapeTs(d.taxIdType)}" as "vat" | "small_business",
+    handwerkskammer: "${escapeTs(d.handwerkskammer)}",
     tradeRegister: "",
     tradeRegisterNumber: "",
-    responsiblePerson: "${d.responsiblePerson}",
+    responsiblePerson: "${escapeTs(d.responsiblePerson)}",
   },
   activeServices: {
     googleFonts: false,
@@ -681,10 +688,10 @@ function buildSiteConfig(d) {
   },
   fonts: { display: "DM Sans", body: "DM Sans" },
   darkMode: ${!isLight},
-  logo: { type: "text" as "text" | "image", text: "${d.companyName.charAt(0)}", imageUrl: "", icon: "${t.icon}" },
+  logo: { type: "text" as "text" | "image", text: "${escapeTs(d.companyName.charAt(0))}", imageUrl: "", icon: "${t.icon}" },
   layout: { navStyle: "transparent" as "transparent" | "solid", footerStyle: "full" as "full" | "simple" },
   sections: {
-    hero: { active: true, layout: "${d.heroLayout}" as "fullscreen" | "split" | "minimal", showBadge: true, showTrustBar: true },
+    hero: { active: true, layout: "${escapeTs(d.heroLayout)}" as "fullscreen" | "split" | "minimal", showBadge: true, showTrustBar: true },
     services: { active: true, layout: "grid" as "grid" | "list" | "cards", columns: 3 as 2 | 3 | 4 },
     about: { active: true, layout: "split" as "split" | "centered", showStats: true },
     projects: { active: ${s.projects || false}, layout: "masonry" as "masonry" | "grid" | "slider" },
@@ -697,46 +704,46 @@ function buildSiteConfig(d) {
   },
   services: ${JSON.stringify(t.services.map(sv => ({ ...sv, description: sv.shortDesc, image: '' })), null, 2)},
   about: {
-    title: "Über ${d.companyName}",
-    description: "${desc}",
+    title: "Über ${escapeTs(d.companyName)}",
+    description: "${escapeTs(desc)}",
     image: "${t.image}",
     highlights: [
-      { label: "Jahre Erfahrung", value: "${yearsExp}" },
+      { label: "Jahre Erfahrung", value: "${escapeTs(yearsExp)}" },
       { label: "Projekte", value: "200+" },
       { label: "Zufriedene Kunden", value: "99%" },
     ],
   },
   projects: [
-    { id: "p1", title: "Projekt in ${d.city}", description: "Professionelle Ausführung.", image: "${t.image}", category: "${t.industry}" },
+    { id: "p1", title: "Projekt in ${escapeTs(d.city)}", description: "Professionelle Ausführung.", image: "${t.image}", category: "${t.industry}" },
     { id: "p2", title: "Weiteres Projekt", description: "Qualitätsarbeit.", image: "${t.image}", category: "${t.industry}" },
   ],
   stats: [
     { value: "200+", label: "Projekte" },
-    { value: "${yearsExp}", label: "Jahre" },
+    { value: "${escapeTs(yearsExp)}", label: "Jahre" },
     { value: "99%", label: "Zufriedenheit" },
   ],
   benefits: [
     { title: "Erfahrung", description: "Jahrelange Expertise.", icon: "Award" },
     { title: "Qualität", description: "Beste Materialien.", icon: "ShieldCheck" },
     { title: "Pünktlich", description: "Termintreue garantiert.", icon: "Clock" },
-    { title: "Lokal", description: "Ihr Partner in ${d.city}.", icon: "MapPin" },
+    { title: "Lokal", description: "Ihr Partner in ${escapeTs(d.city)}.", icon: "MapPin" },
   ],
   reviews: ${JSON.stringify(t.reviews, null, 2)},
   faqItems: ${JSON.stringify(t.faq, null, 2)},
   openingHours: [
-    { day: "Montag – Freitag", hours: "${d.hoursMoFr}" },
-    { day: "Samstag", hours: "${d.hoursSa}" },
-    { day: "Sonntag", hours: "${d.hoursSo}" },
+    { day: "Montag – Freitag", hours: "${escapeTs(d.hoursMoFr)}" },
+    { day: "Samstag", hours: "${escapeTs(d.hoursSa)}" },
+    { day: "Sonntag", hours: "${escapeTs(d.hoursSo)}" },
   ],
   seo: {
-    titleTemplate: "%s | ${d.companyName}",
-    defaultTitle: "${d.companyName} – ${t.industry} in ${d.city}",
-    defaultDescription: "${desc}",
-    keywords: "${t.industry} ${d.city}",
+    titleTemplate: "%s | ${escapeTs(d.companyName)}",
+    defaultTitle: "${escapeTs(d.companyName)} – ${t.industry} in ${escapeTs(d.city)}",
+    defaultDescription: "${escapeTs(desc)}",
+    keywords: "${t.industry} ${escapeTs(d.city)}",
     ogImage: "/og-image.jpg",
     siteUrl: "https://${slug}.vercel.app",
   },
-  schema: { type: "${t.schema}", priceRange: "€€", areaServed: "${d.city}" },
+  schema: { type: "${t.schema}", priceRange: "€€", areaServed: "${escapeTs(d.city)}" },
   socialMedia: { facebook: "", instagram: "", linkedin: "" },
   analytics: { googleAnalyticsId: "" },
   language: { default: "de" as "de" | "en", available: ["de"] as ("de" | "en")[] },
